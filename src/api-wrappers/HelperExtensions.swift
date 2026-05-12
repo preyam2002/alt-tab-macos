@@ -271,6 +271,42 @@ extension CVPixelBuffer {
             height: CVPixelBufferGetHeight(self)
         )
     }
+
+    func isFullyTransparent() -> Bool {
+        guard CVPixelBufferGetPixelFormatType(self) == kCVPixelFormatType_32BGRA,
+              CVPixelBufferLockBaseAddress(self, .readOnly) == kCVReturnSuccess,
+              let base = CVPixelBufferGetBaseAddress(self)
+        else { return false }
+        defer { CVPixelBufferUnlockBaseAddress(self, .readOnly) }
+        let width = CVPixelBufferGetWidth(self)
+        let height = CVPixelBufferGetHeight(self)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(self)
+        let ptr = base.assumingMemoryBound(to: UInt8.self)
+        let sampleStepX = max(1, width / 64)
+        let sampleStepY = max(1, height / 64)
+        var y = 0
+        while y < height {
+            var x = 0
+            while x < width {
+                if ptr[y * bytesPerRow + x * 4 + 3] != 0 {
+                    return false
+                }
+                x += sampleStepX
+            }
+            y += sampleStepY
+        }
+        for y in 0..<height {
+            var i = y * bytesPerRow + 3
+            let end = i + width * 4
+            while i < end {
+                if ptr[i] != 0 {
+                    return false
+                }
+                i += 4
+            }
+        }
+        return true
+    }
 }
 
 extension pid_t {

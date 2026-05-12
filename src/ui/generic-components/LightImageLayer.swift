@@ -83,10 +83,13 @@ class LightImageLayer: CALayer {
         case .cgImage(let image?):
             contents = image
             if withTransparencyChecks {
-                fullyTransparent = image.isFullyTransparent()
+                fullyTransparent = caLayerContents.isFullyTransparent()
             }
-        case .pixelBuffer(let pixelBuffer?):
+        case .pixelBuffer(let pixelBuffer?), .transparentPixelBuffer(let pixelBuffer?):
             contents = CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue()
+            if withTransparencyChecks {
+                fullyTransparent = caLayerContents.isFullyTransparent()
+            }
         default: break
         }
         if frame.size != size {

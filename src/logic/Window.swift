@@ -112,20 +112,29 @@ class Window {
     }
 
     func refreshThumbnail(_ screenshot: CALayerContents) {
-        thumbnail = screenshot
+        let thumbnailToShow = screenshot.isFullyTransparent()
+            ? (thumbnail?.isUsableThumbnail() == true ? thumbnail : nil)
+            : screenshot
+        thumbnail = thumbnailToShow
         if !App.appIsBeingUsed || !shouldShowTheUser { return }
         if let position, let size,
            let view = (TilesView.recycledViews.first { $0.window_?.cgWindowId == cgWindowId }) {
             if !view.thumbnail.isHidden {
-                let thumbnailSize = TileView.thumbnailSize(size, false)
+                let thumbnailSize = thumbnailToShow == nil
+                    ? TileView.thumbnailSize(icon?.size(), true)
+                    : TileView.thumbnailSize(size, false)
                 let newSize = thumbnailSize.width != view.thumbnail.frame.width || thumbnailSize.height != view.thumbnail.frame.height
-                view.thumbnail.updateContents(screenshot, thumbnailSize)
+                view.thumbnail.updateContents(thumbnailToShow ?? .cgImage(icon), thumbnailSize)
                 // if the thumbnail size has changed, we need to refresh the open UI
                 if newSize {
                     App.refreshOpenUiAfterExternalEvent([])
                 }
             }
-            PreviewPanel.updateIfShowing(cgWindowId, screenshot, position, size)
+            if let thumbnailToShow {
+                PreviewPanel.updateIfShowing(cgWindowId, thumbnailToShow, position, size)
+            } else {
+                PreviewPanel.hideIfShowing(cgWindowId)
+            }
         }
     }
 

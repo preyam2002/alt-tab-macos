@@ -36,12 +36,35 @@ class LightImageView: NSView {
 enum CALayerContents {
     case cgImage(CGImage?)
     case pixelBuffer(CVPixelBuffer?)
+    case transparentPixelBuffer(CVPixelBuffer?)
+
+    func isFullyTransparent() -> Bool {
+        switch self {
+        case .cgImage(let image):
+            return image?.isFullyTransparent() ?? false
+        case .pixelBuffer:
+            return false
+        case .transparentPixelBuffer:
+            return true
+        }
+    }
+
+    func isUsableThumbnail() -> Bool {
+        switch self {
+        case .cgImage(let image):
+            return image != nil && !isFullyTransparent()
+        case .pixelBuffer(let pixelBuffer):
+            return pixelBuffer != nil
+        case .transparentPixelBuffer:
+            return false
+        }
+    }
 
     func size() -> NSSize? {
         switch self {
         case .cgImage(let image):
             return image?.size()
-        case .pixelBuffer(let pixelBuffer):
+        case .pixelBuffer(let pixelBuffer), .transparentPixelBuffer(let pixelBuffer):
             return pixelBuffer?.size()
         }
     }

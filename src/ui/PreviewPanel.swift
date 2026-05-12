@@ -60,6 +60,13 @@ class PreviewPanel: NSPanel {
         }
     }
 
+    static func hideIfShowing(_ id: CGWindowID?) {
+        if Self.shared.isVisible && id == currentId {
+            Self.shared.orderOut(nil)
+            currentId = nil
+        }
+    }
+
     private static func repositionAndResize( _ position: CGPoint, _ size: CGSize) {
         var frame = NSRect(origin: position, size: size)
         // Flip Y coordinate from Quartz (0,0 at bottom-left) to Cocoa coordinates (0,0 at top-left)

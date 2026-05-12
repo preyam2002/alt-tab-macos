@@ -69,10 +69,11 @@ class WindowCaptureScreenshots {
             guard source != .refreshOnlyThumbnailsAfterShowUi || App.appIsBeingUsed else { return }
             let pixelBuffer: CVPixelBuffer? = sampleBuffer.pixelBuffer() ?? sampleBuffer.imageBuffer
             guard let pixelBuffer else { Logger.error { "\(window.debugId) no pixelBuffer" }; return }
+            let screenshot: CALayerContents = pixelBuffer.isFullyTransparent() ? .transparentPixelBuffer(pixelBuffer) : .pixelBuffer(pixelBuffer)
             DispatchQueue.main.async {
                 guard source != .refreshOnlyThumbnailsAfterShowUi || App.appIsBeingUsed else { return }
                 if let window = (Windows.list.first { $0.cgWindowId == scWindow.windowID }) {
-                    window.refreshThumbnail(.pixelBuffer(pixelBuffer))
+                    window.refreshThumbnail(screenshot)
                 }
             }
         }
@@ -236,6 +237,10 @@ extension SCStreamConfiguration {
         config.setWindowSize(scWindow, window)
         config.pixelFormat = kCVPixelFormatType_32BGRA
         config.showsCursor = false
+        if #available(macOS 14.0, *) {
+            config.ignoreGlobalClipSingleWindow = true
+            config.captureResolution = .best
+        }
         // if video {
         //     config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(60))
         //     config.queueDepth = 8
