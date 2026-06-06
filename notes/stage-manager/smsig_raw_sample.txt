@@ -1,0 +1,49 @@
+(pid:22582 com.openai.codex) (wid:12299 title:Codex) scFrame:1280x968 req:1280x968 active:false onScreen:false transp:false bbox:32x32/32 pb:727x550
+(pid:4659 com.mitchellh.ghostty) (wid:43532 title:✳ Locate MM repository) scFrame:1453x903 req:1453x903 active:false onScreen:false transp:false bbox:32x32/32 pb:831x516
+(pid:4659 com.mitchellh.ghostty) (wid:48110 title:⠐ Complete Ghostty merge tabs thing) scFrame:1453x903 req:1453x903 active:false onScreen:false transp:false bbox:32x32/32 pb:831x516
+(pid:4659 com.mitchellh.ghostty) (wid:48110 title:⠐ Complete Ghostty merge tabs thing) scFrame:1453x903 req:1453x903 active:true onScreen:true transp:false bbox:32x32/32 pb:831x516
+(pid:4659 com.mitchellh.ghostty) (wid:48116 title:⠂ Complete Alt+Tab functionality implementation) scFrame:141x145 req:1453x903 active:true onScreen:true transp:false bbox:24x26/32 pb:831x516
+(pid:4659 com.mitchellh.ghostty) (wid:48116 title:⠂ Complete Alt+Tab functionality implementation) scFrame:141x145 req:1453x903 active:true onScreen:true transp:false bbox:32x32/32 pb:831x516
+(pid:4659 com.mitchellh.ghostty) (wid:48116 title:⠂ Complete Alt+Tab functionality implementation) scFrame:141x145 req:1453x903 active:true onScreen:true transp:false bbox:3x5/32 pb:831x516
+(pid:4659 com.mitchellh.ghostty) (wid:48116 title:⠂ Complete Alt+Tab functionality implementation) scFrame:1453x903 req:1453x903 active:false onScreen:false transp:false bbox:32x32/32 pb:831x516
+(pid:4659 com.mitchellh.ghostty) (wid:48116 title:⠂ Complete Alt+Tab functionality implementation) scFrame:1453x903 req:1453x903 active:false onScreen:false transp:false bbox:3x5/32 pb:831x516
+(pid:4659 com.mitchellh.ghostty) (wid:50043 title:alpha-dlmm) scFrame:149x137 req:1537x842 active:true onScreen:true transp:false bbox:32x32/32 pb:831x455
+(pid:4659 com.mitchellh.ghostty) (wid:50043 title:alpha-dlmm) scFrame:149x137 req:1537x842 active:true onScreen:true transp:false bbox:3x5/32 pb:831x455
+(pid:4659 com.mitchellh.ghostty) (wid:50043 title:alpha-dlmm) scFrame:1537x842 req:1537x842 active:true onScreen:true transp:false bbox:32x32/32 pb:831x455
+(pid:4659 com.mitchellh.ghostty) (wid:50043 title:alpha-dlmm) scFrame:1537x842 req:1537x842 active:true onScreen:true transp:false bbox:3x5/32 pb:831x455
+(pid:5177 com.apple.systempreferences) (wid:54329 title:Software Update) scFrame:202x302 req:723x836 active:true onScreen:true transp:false bbox:4x3/32 pb:476x550
+(pid:5177 com.apple.systempreferences) (wid:54329 title:Software Update) scFrame:202x302 req:723x836 active:true onScreen:true transp:false bbox:4x4/32 pb:476x550
+(pid:5177 com.apple.systempreferences) (wid:54329 title:Software Update) scFrame:75x127 req:723x836 active:true onScreen:true transp:false bbox:14x15/32 pb:476x550
+(pid:5177 com.apple.systempreferences) (wid:54329 title:Software Update) scFrame:75x127 req:723x836 active:true onScreen:true transp:false bbox:4x4/32 pb:476x550
+(pid:5177 com.apple.systempreferences) (wid:54329 title:Software Update) scFrame:75x127 req:723x836 active:true onScreen:true transp:false bbox:4x5/32 pb:476x550
+(pid:5177 com.apple.systempreferences) (wid:54329 title:Software Update) scFrame:75x127 req:723x836 active:true onScreen:true transp:false bbox:5x26/32 pb:476x550
+(pid:5177 com.apple.systempreferences) (wid:54329 title:Software Update) scFrame:75x127 req:723x836 active:true onScreen:true transp:false bbox:6x8/32 pb:476x550
+(pid:691 notion.id) (wid:85 title:Ideas) scFrame:123x124 req:1280x858 active:true onScreen:true transp:true bbox:-32x-32/32 pb:821x550
+(pid:691 notion.id) (wid:85 title:Ideas) scFrame:123x144 req:1280x858 active:true onScreen:true transp:true bbox:-32x-32/32 pb:821x550
+(pid:695 com.spotify.client) (wid:86 title:Noah Kahan - You’re Gonna Go Far) scFrame:141x158 req:1495x972 active:true onScreen:true transp:true bbox:-32x-32/32 pb:831x540
+(pid:695 com.spotify.client) (wid:86 title:Noah Kahan - You’re Gonna Go Far) scFrame:1495x972 req:1495x972 active:true onScreen:true transp:false bbox:32x32/32 pb:831x540
+(pid:695 com.spotify.client) (wid:86 title:Noah Kahan - You’re Gonna Go Far) scFrame:1495x972 req:1495x972 active:true onScreen:true transp:true bbox:-32x-32/32 pb:831x540
+(pid:700 com.apple.iCal) (wid:120 title:Calendar) scFrame:113x122 req:1162x821 active:true onScreen:true transp:true bbox:-32x-32/32 pb:778x550
+(pid:700 com.apple.iCal) (wid:120 title:Calendar) scFrame:113x124 req:1162x821 active:true onScreen:true transp:false bbox:32x32/32 pb:778x550
+(pid:700 com.apple.iCal) (wid:120 title:Calendar) scFrame:113x124 req:1162x821 active:true onScreen:true transp:true bbox:-32x-32/32 pb:778x550
+(pid:70069 com.google.Chrome) (wid:19306 title:diep.io - Google Chrome) scFrame:1920x1080 req:1920x1080 active:false onScreen:false transp:false bbox:31x30/32 pb:831x467
+(pid:70069 com.google.Chrome) (wid:19306 title:diep.io - Google Chrome) scFrame:1920x1080 req:1920x1080 active:false onScreen:false transp:false bbox:32x32/32 pb:831x467
+(pid:70069 com.google.Chrome) (wid:19306 title:diep.io - Google Chrome) scFrame:1920x1080 req:1920x993 active:false onScreen:false transp:false bbox:31x32/32 pb:831x430
+(pid:703 ru.keepcoder.Telegram) (wid:98 title:Telegram @ Ymir) scFrame:142x151 req:1452x1013 active:true onScreen:true transp:false bbox:3x5/32 pb:788x550
+(pid:703 ru.keepcoder.Telegram) (wid:98 title:Telegram @ Ymir) scFrame:142x153 req:1452x1013 active:true onScreen:true transp:false bbox:27x31/32 pb:788x550
+(pid:703 ru.keepcoder.Telegram) (wid:98 title:Telegram @ Ymir) scFrame:142x153 req:1452x1013 active:true onScreen:true transp:false bbox:32x32/32 pb:788x550
+(pid:703 ru.keepcoder.Telegram) (wid:98 title:Telegram @ Ymir) scFrame:142x153 req:1452x1013 active:true onScreen:true transp:false bbox:3x4/32 pb:788x550
+(pid:703 ru.keepcoder.Telegram) (wid:98 title:Telegram @ Ymir) scFrame:142x153 req:1452x1013 active:true onScreen:true transp:false bbox:3x5/32 pb:788x550
+(pid:713 net.ankiweb.dtop) (wid:152 title:User 1 - Anki) scFrame:109x142 req:1119x979 active:true onScreen:true transp:true bbox:-32x-32/32 pb:629x550
+(pid:713 net.ankiweb.dtop) (wid:152 title:User 1 - Anki) scFrame:109x157 req:1119x979 active:true onScreen:true transp:true bbox:-32x-32/32 pb:629x550
+(pid:80814 net.whatsapp.WhatsApp) (wid:36972 title:‎WhatsApp) scFrame:127x147 req:1330x906 active:true onScreen:true transp:false bbox:32x32/32 pb:807x550
+(pid:80814 net.whatsapp.WhatsApp) (wid:36972 title:‎WhatsApp) scFrame:127x147 req:1330x906 active:true onScreen:true transp:true bbox:-32x-32/32 pb:807x550
+(pid:80814 net.whatsapp.WhatsApp) (wid:36972 title:‎WhatsApp) scFrame:1330x906 req:1330x906 active:true onScreen:true transp:false bbox:32x32/32 pb:807x550
+(pid:80814 net.whatsapp.WhatsApp) (wid:36972 title:‎WhatsApp) scFrame:1330x906 req:1330x906 active:true onScreen:true transp:true bbox:-32x-32/32 pb:807x550
+(pid:81115 com.mitchellh.ghostty.mergetabs) (wid:54584 title:Ghostty MergeTabs) scFrame:1303x763 req:1325x775 active:true onScreen:true transp:false bbox:32x32/32 pb:831x486
+(pid:81115 com.mitchellh.ghostty.mergetabs) (wid:54584 title:Ghostty MergeTabs) scFrame:1313x769 req:1325x775 active:true onScreen:true transp:false bbox:32x32/32 pb:831x486
+(pid:81115 com.mitchellh.ghostty.mergetabs) (wid:54584 title:Ghostty MergeTabs) scFrame:1327x777 req:1325x775 active:true onScreen:true transp:false bbox:32x32/32 pb:831x486
+(pid:81115 com.mitchellh.ghostty.mergetabs) (wid:54584 title:Ghostty MergeTabs) scFrame:1327x777 req:1325x775 active:true onScreen:true transp:false bbox:3x5/32 pb:831x486
+(pid:81137 com.todesktop.230313mzl4w4u92) (wid:15614 title:fee_params.move — AlphaFiTech) scFrame:164x138 req:1703x958 active:true onScreen:true transp:false bbox:3x4/32 pb:831x467
+(pid:81137 com.todesktop.230313mzl4w4u92) (wid:15614 title:fee_params.move — AlphaFiTech) scFrame:164x138 req:1703x958 active:true onScreen:true transp:false bbox:3x5/32 pb:831x467
+(pid:93084 now.typeless.desktop) (wid:24216 title:Status) scFrame:500x500 req:500x500 active:true onScreen:true transp:true bbox:-32x-32/32 pb:550x550

@@ -1,0 +1,300 @@
+diff --git a/src/api-wrappers/HelperExtensions.swift b/src/api-wrappers/HelperExtensions.swift
+index 1fe9dc90..b385b410 100644
+--- a/src/api-wrappers/HelperExtensions.swift
++++ b/src/api-wrappers/HelperExtensions.swift
+@@ -271,6 +271,42 @@ extension CVPixelBuffer {
+             height: CVPixelBufferGetHeight(self)
+         )
+     }
++
++    func isFullyTransparent() -> Bool {
++        guard CVPixelBufferGetPixelFormatType(self) == kCVPixelFormatType_32BGRA,
++              CVPixelBufferLockBaseAddress(self, .readOnly) == kCVReturnSuccess,
++              let base = CVPixelBufferGetBaseAddress(self)
++        else { return false }
++        defer { CVPixelBufferUnlockBaseAddress(self, .readOnly) }
++        let width = CVPixelBufferGetWidth(self)
++        let height = CVPixelBufferGetHeight(self)
++        let bytesPerRow = CVPixelBufferGetBytesPerRow(self)
++        let ptr = base.assumingMemoryBound(to: UInt8.self)
++        let sampleStepX = max(1, width / 64)
++        let sampleStepY = max(1, height / 64)
++        var y = 0
++        while y < height {
++            var x = 0
++            while x < width {
++                if ptr[y * bytesPerRow + x * 4 + 3] != 0 {
++                    return false
++                }
++                x += sampleStepX
++            }
++            y += sampleStepY
++        }
++        for y in 0..<height {
++            var i = y * bytesPerRow + 3
++            let end = i + width * 4
++            while i < end {
++                if ptr[i] != 0 {
++                    return false
++                }
++                i += 4
++            }
++        }
++        return true
++    }
+ }
+ 
+ extension pid_t {
+diff --git a/src/logic/Window.swift b/src/logic/Window.swift
+index 2f52c20a..d1508070 100644
+--- a/src/logic/Window.swift
++++ b/src/logic/Window.swift
+@@ -111,21 +111,30 @@ class Window {
+         CFRunLoopAddSource(BackgroundWork.accessibilityEventsThread.runLoop, AXObserverGetRunLoopSource(axObserver), .commonModes)
+     }
+ 
+-    func refreshThumbnail(_ screenshot: CALayerContents) {
+-        thumbnail = screenshot
++    func refreshThumbnail(_ screenshot: CALayerContents?) {
++        let thumbnailToShow = screenshot?.isUsableThumbnail() == true
++            ? screenshot
++            : (thumbnail?.isUsableThumbnail() == true ? thumbnail : nil)
++        thumbnail = thumbnailToShow
+         if !App.appIsBeingUsed || !shouldShowTheUser { return }
+         if let position, let size,
+            let view = (TilesView.recycledViews.first { $0.window_?.cgWindowId == cgWindowId }) {
+             if !view.thumbnail.isHidden {
+-                let thumbnailSize = TileView.thumbnailSize(size, false)
++                let thumbnailSize = thumbnailToShow == nil
++                    ? TileView.thumbnailSize(icon?.size(), true)
++                    : TileView.thumbnailSize(size, false)
+                 let newSize = thumbnailSize.width != view.thumbnail.frame.width || thumbnailSize.height != view.thumbnail.frame.height
+-                view.thumbnail.updateContents(screenshot, thumbnailSize)
++                view.thumbnail.updateContents(thumbnailToShow ?? .cgImage(icon), thumbnailSize)
+                 // if the thumbnail size has changed, we need to refresh the open UI
+                 if newSize {
+                     App.refreshOpenUiAfterExternalEvent([])
+                 }
+             }
+-            PreviewPanel.updateIfShowing(cgWindowId, screenshot, position, size)
++            if let thumbnailToShow {
++                PreviewPanel.updateIfShowing(cgWindowId, thumbnailToShow, position, size)
++            } else {
++                PreviewPanel.hideIfShowing(cgWindowId)
++            }
+         }
+     }
+ 
+diff --git a/src/logic/events/WindowCaptureEvents.swift b/src/logic/events/WindowCaptureEvents.swift
+index 9b04704d..6309e2a5 100644
+--- a/src/logic/events/WindowCaptureEvents.swift
++++ b/src/logic/events/WindowCaptureEvents.swift
+@@ -11,21 +11,22 @@ class WindowCaptureScreenshots {
+         guard !windows.isEmpty else { return }
+         BackgroundWork.screenshotsQueue.addOperation {
+             guard source != .refreshOnlyThumbnailsAfterShowUi || App.appIsBeingUsed else { return }
++            let stageManagerEnabled = isStageManagerEnabled()
+             let (cachedWindows, notCachedWindows) = sortCachedAndNotCached(windows)
+             Logger.debug { "cached:\(cachedWindows.map { $0.windowID }) notCached:\(notCachedWindows)" }
+-            handleCachedWindows(cachedWindows, source)
+-            handleNotCachedWindows(notCachedWindows, source)
++            handleCachedWindows(cachedWindows, source, stageManagerEnabled)
++            handleNotCachedWindows(notCachedWindows, source, stageManagerEnabled)
+         }
+     }
+ 
+-    private static func handleCachedWindows(_ cachedWindows: [SCWindow], _ source: RefreshCausedBy) {
++    private static func handleCachedWindows(_ cachedWindows: [SCWindow], _ source: RefreshCausedBy, _ stageManagerEnabled: Bool) {
+         guard !cachedWindows.isEmpty else { return }
+         for cachedWindow in cachedWindows {
+-            oneTimeCapture(cachedWindow, source)
++            oneTimeCapture(cachedWindow, source, stageManagerEnabled)
+         }
+     }
+ 
+-    private static func handleNotCachedWindows(_ notCachedWindows: [CGWindowID], _ source: RefreshCausedBy) {
++    private static func handleNotCachedWindows(_ notCachedWindows: [CGWindowID], _ source: RefreshCausedBy, _ stageManagerEnabled: Bool) {
+         guard !notCachedWindows.isEmpty else { return }
+         SCShareableContent.getExcludingDesktopWindows(true, onScreenWindowsOnly: false) { shareableContent, error in
+             guard let shareableContent, error == nil else { Logger.error { "\(shareableContent == nil) \(error)" }; return }
+@@ -36,7 +37,7 @@ class WindowCaptureScreenshots {
+                 guard source != .refreshOnlyThumbnailsAfterShowUi || App.appIsBeingUsed else { return }
+                 for notCachedWindow in notCachedWindows {
+                     if let cachedWindow = (cachedSCWindows.first { $0.windowID == notCachedWindow }) {
+-                        oneTimeCapture(cachedWindow, source)
++                        oneTimeCapture(cachedWindow, source, stageManagerEnabled)
+                     } else {
+                         Logger.debug { "wid:\(notCachedWindow) was not found in SCShareableContent windows" }
+                     }
+@@ -58,7 +59,7 @@ class WindowCaptureScreenshots {
+         return (cachedWindows, notCachedWindows)
+     }
+ 
+-    private static func oneTimeCapture(_ scWindow: SCWindow, _ source: RefreshCausedBy) {
++    private static func oneTimeCapture(_ scWindow: SCWindow, _ source: RefreshCausedBy, _ stageManagerEnabled: Bool) {
+         guard !App.isTerminating, let window = (Windows.list.first { $0.cgWindowId == scWindow.windowID }), window.size != nil else { return }
+         let config = SCStreamConfiguration.forWindow(scWindow, window, false)
+         let filter = SCContentFilter(desktopIndependentWindow: scWindow)
+@@ -69,14 +70,71 @@ class WindowCaptureScreenshots {
+             guard source != .refreshOnlyThumbnailsAfterShowUi || App.appIsBeingUsed else { return }
+             let pixelBuffer: CVPixelBuffer? = sampleBuffer.pixelBuffer() ?? sampleBuffer.imageBuffer
+             guard let pixelBuffer else { Logger.error { "\(window.debugId) no pixelBuffer" }; return }
++            let screenshot = layerContents(pixelBuffer, stageManagerEnabled)
+             DispatchQueue.main.async {
+                 guard source != .refreshOnlyThumbnailsAfterShowUi || App.appIsBeingUsed else { return }
+                 if let window = (Windows.list.first { $0.cgWindowId == scWindow.windowID }) {
+-                    window.refreshThumbnail(.pixelBuffer(pixelBuffer))
++                    window.refreshThumbnail(screenshot)
+                 }
+             }
+         }
+     }
++
++    private struct BBox { var minX: Int; var minY: Int; var maxX: Int; var maxY: Int }
++
++    private static func opaqueBBox(_ pixelBuffer: CVPixelBuffer) -> BBox {
++        let empty = BBox(minX: -1, minY: -1, maxX: -1, maxY: -1)
++        guard CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_32BGRA,
++              CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly) == kCVReturnSuccess,
++              let base = CVPixelBufferGetBaseAddress(pixelBuffer) else { return empty }
++        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
++        let width = CVPixelBufferGetWidth(pixelBuffer)
++        let height = CVPixelBufferGetHeight(pixelBuffer)
++        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
++        guard width >= 16, height >= 16 else { return empty }
++        let ptr = base.assumingMemoryBound(to: UInt8.self)
++        let grid = 32
++        var minX = grid, maxX = -1, minY = grid, maxY = -1
++        for sy in 0..<grid {
++            let py = (sy * height) / grid
++            let rowStart = py * bytesPerRow
++            for sx in 0..<grid {
++                let px = (sx * width) / grid
++                if ptr[rowStart + px * 4 + 3] > 16 {
++                    if sx < minX { minX = sx }
++                    if sx > maxX { maxX = sx }
++                    if sy < minY { minY = sy }
++                    if sy > maxY { maxY = sy }
++                }
++            }
++        }
++        return BBox(minX: minX, minY: minY, maxX: maxX, maxY: maxY)
++    }
++
++    private static func isSmallBBox(_ b: BBox) -> Bool {
++        guard b.maxX >= 0, b.maxY >= 0 else { return false }
++        let grid = 32
++        let w = b.maxX - b.minX + 1
++        let h = b.maxY - b.minY + 1
++        return w * 100 / grid < 55 && h * 100 / grid < 55
++    }
++
++    private static func layerContents(_ pixelBuffer: CVPixelBuffer, _ stageManagerEnabled: Bool) -> CALayerContents? {
++        let fullyTransparent = pixelBuffer.isFullyTransparent()
++        if stageManagerEnabled && (fullyTransparent || isSmallBBox(opaqueBBox(pixelBuffer))) {
++            return nil
++        }
++        return fullyTransparent ? .transparentPixelBuffer(pixelBuffer) : .pixelBuffer(pixelBuffer)
++    }
++
++    private static func isStageManagerEnabled() -> Bool {
++        let domain = "com.apple.WindowManager" as CFString
++        CFPreferencesAppSynchronize(domain)
++        guard let value = CFPreferencesCopyAppValue("GloballyEnabled" as CFString, domain) else { return false }
++        if let enabled = value as? Bool { return enabled }
++        if let enabled = value as? Int { return enabled != 0 }
++        return false
++    }
+ }
+ 
+ class WindowCaptureScreenshotsPrivateApi {
+@@ -236,6 +294,10 @@ extension SCStreamConfiguration {
+         config.setWindowSize(scWindow, window)
+         config.pixelFormat = kCVPixelFormatType_32BGRA
+         config.showsCursor = false
++        if #available(macOS 14.0, *) {
++            config.ignoreGlobalClipSingleWindow = true
++            config.captureResolution = .best
++        }
+         // if video {
+         //     config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(60))
+         //     config.queueDepth = 8
+diff --git a/src/ui/PreviewPanel.swift b/src/ui/PreviewPanel.swift
+index 1fb329e9..b4ffee61 100644
+--- a/src/ui/PreviewPanel.swift
++++ b/src/ui/PreviewPanel.swift
+@@ -60,6 +60,13 @@ class PreviewPanel: NSPanel {
+         }
+     }
+ 
++    static func hideIfShowing(_ id: CGWindowID?) {
++        if Self.shared.isVisible && id == currentId {
++            Self.shared.orderOut(nil)
++            currentId = nil
++        }
++    }
++
+     private static func repositionAndResize( _ position: CGPoint, _ size: CGSize) {
+         var frame = NSRect(origin: position, size: size)
+         // Flip Y coordinate from Quartz (0,0 at bottom-left) to Cocoa coordinates (0,0 at top-left)
+diff --git a/src/ui/generic-components/LightImageLayer.swift b/src/ui/generic-components/LightImageLayer.swift
+index c277d587..14c990a1 100644
+--- a/src/ui/generic-components/LightImageLayer.swift
++++ b/src/ui/generic-components/LightImageLayer.swift
+@@ -83,10 +83,13 @@ class LightImageLayer: CALayer {
+         case .cgImage(let image?):
+             contents = image
+             if withTransparencyChecks {
+-                fullyTransparent = image.isFullyTransparent()
++                fullyTransparent = caLayerContents.isFullyTransparent()
+             }
+-        case .pixelBuffer(let pixelBuffer?):
++        case .pixelBuffer(let pixelBuffer?), .transparentPixelBuffer(let pixelBuffer?):
+             contents = CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue()
++            if withTransparencyChecks {
++                fullyTransparent = caLayerContents.isFullyTransparent()
++            }
+         default: break
+         }
+         if frame.size != size {
+diff --git a/src/ui/generic-components/LightImageView.swift b/src/ui/generic-components/LightImageView.swift
+index 31099040..b0ab10ad 100644
+--- a/src/ui/generic-components/LightImageView.swift
++++ b/src/ui/generic-components/LightImageView.swift
+@@ -36,12 +36,35 @@ class LightImageView: NSView {
+ enum CALayerContents {
+     case cgImage(CGImage?)
+     case pixelBuffer(CVPixelBuffer?)
++    case transparentPixelBuffer(CVPixelBuffer?)
++
++    func isFullyTransparent() -> Bool {
++        switch self {
++        case .cgImage(let image):
++            return image?.isFullyTransparent() ?? false
++        case .pixelBuffer:
++            return false
++        case .transparentPixelBuffer:
++            return true
++        }
++    }
++
++    func isUsableThumbnail() -> Bool {
++        switch self {
++        case .cgImage(let image):
++            return image != nil && !isFullyTransparent()
++        case .pixelBuffer(let pixelBuffer):
++            return pixelBuffer != nil
++        case .transparentPixelBuffer:
++            return false
++        }
++    }
+ 
+     func size() -> NSSize? {
+         switch self {
+         case .cgImage(let image):
+             return image?.size()
+-        case .pixelBuffer(let pixelBuffer):
++        case .pixelBuffer(let pixelBuffer), .transparentPixelBuffer(let pixelBuffer):
+             return pixelBuffer?.size()
+         }
+     }
