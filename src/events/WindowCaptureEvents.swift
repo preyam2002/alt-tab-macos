@@ -98,10 +98,6 @@ class WindowCaptureScreenshots {
         // [weak window] avoids keeping a closed Window alive while the capture is queued or in-flight with the OS
         Applications.screenshotThrottler.throttleOrProceed(key: "capture-wid-\(scWindow.windowID)", queue: BackgroundWork.screenshotsQueue, priority: isPrioritized ? .high : .normal) { [weak window = request.window] in
             guard !App.isTerminating, let window else { return }
-            // macOS 26 Stage Manager: a window in the side strip is reported by ScreenCaptureKit at a tiny
-            // shelf-sized frame and only that shelf gets captured, not the full window. Skip it so the
-            // previous thumbnail is preserved instead of being overwritten by a broken shelf-sized image.
-            if stageManagerEnabled, isStagedShelfCapture(scWindow.frame.size, size) { return }
             let config = SCStreamConfiguration.forWindow(scWindow, size, scaleFactor, false)
             let filter = SCContentFilter(desktopIndependentWindow: scWindow)
             ActiveWindowCaptures.increment()
@@ -111,6 +107,12 @@ class WindowCaptureScreenshots {
                 guard let sampleBuffer, error == nil else { Logger.error { "\(window.debugId) \(sampleBuffer == nil) \(error)" }; return }
                 guard source != .refreshOnlyThumbnailsAfterShowUi || SwitcherSession.isActive else { return }
                 guard let pixelBuffer = sampleBuffer.pixelBuffer() ?? sampleBuffer.imageBuffer else { Logger.error { "\(window.debugId) no pixelBuffer" }; return }
+                // macOS 26 Stage Manager: captures of side-strip windows come back blank or shelf-sized;
+                // drop them so the previous good thumbnail (or the icon, if never captured) stays shown
+                guard WindowCapturePolicy.shouldUseCapture(stageManagerEnabled, pixelBuffer) else {
+                    Logger.debug { "\(window.debugId) dropped blank staged capture" }
+                    return
+                }
                 DispatchQueue.main.async {
                     guard source != .refreshOnlyThumbnailsAfterShowUi || SwitcherSession.isActive else { return }
                     window.refreshThumbnail(.pixelBuffer(pixelBuffer))
@@ -129,17 +131,6 @@ class WindowCaptureScreenshots {
         return false
     }
 
-    // A window staged in the Stage Manager side strip is reported by ScreenCaptureKit at a shelf-sized
-    // frame, far smaller than the full logical size we asked to capture (≈10% of it in practice). A
-    // normal window reports a frame matching the requested size, so a reported frame below half the
-    // requested size in both dimensions reliably identifies a shelf capture without inspecting pixels.
-    static let shelfFrameRatio: CGFloat = 0.5
-
-    static func isStagedShelfCapture(_ frameSize: CGSize, _ requestedSize: CGSize) -> Bool {
-        guard requestedSize.width > 0, requestedSize.height > 0 else { return false }
-        return frameSize.width < requestedSize.width * shelfFrameRatio
-            && frameSize.height < requestedSize.height * shelfFrameRatio
-    }
 }
 
 class WindowCaptureScreenshotsPrivateApi {
