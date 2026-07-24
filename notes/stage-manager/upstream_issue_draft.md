@@ -22,11 +22,15 @@ So SCK *can* capture staged windows correctly; it just occasionally returns (2) 
 
 ## Proposed fix
 
-In the ScreenCaptureKit path (`WindowCaptureScreenshots.oneTimeCapture`), when Stage Manager is enabled, detect a bad staged capture and skip the `refreshThumbnail` call so the previous good thumbnail is preserved (and the spurious relayout is avoided). Detection is cheap and content-based:
+In the ScreenCaptureKit path (`WindowCaptureScreenshots.oneTimeCapture`), when Stage Manager is enabled, judge the returned buffer before applying it, and skip the `refreshThumbnail` call for a bad one so the previous good thumbnail is preserved (and the spurious relayout is avoided). Detection is cheap and purely content-based: sample a 32×32 alpha grid and keep the capture only if its opaque bounding box fills at least half the buffer in both dimensions.
 
-- fully-transparent buffer, or
-- opaque-content bounding box occupying a small fraction of the full-size buffer (a staged "shelf" capture).
+Measured over an instrumented run on macOS 26, that threshold separates the two classes with a wide margin — usable captures covered ≥24/32 of the grid in both dimensions, junk covered ≤15/32 (typically 3–6) or nothing at all.
 
-Gated on Stage Manager being on, so the default (SM-off) capture path is byte-for-byte unchanged.
+Two things worth flagging, because they rule out the cheaper heuristic one would reach for first:
 
-I have a working patch (2 files, ~100 lines, no new dependencies) and would be happy to open a PR if you're open to it. Wanted to check receptiveness first given #4747.
+- **`SCWindow.frame` is not a usable signal.** A staged window reports a shelf-sized frame (~10% of the requested size), so it looks like an obvious discriminator — but staged windows with a shelf-sized frame frequently return *good* captures (skipping them fills the switcher with app icons), and windows whose frame matches the request still return blank or shelf-sized junk (so a frame gate misses the actual bug). It fails in both directions.
+- Buffers that can't be analyzed (non-BGRA) are kept, so the check can only ever discard a frame it positively identified as junk.
+
+Everything is gated on Stage Manager being on, so the default (SM-off) capture path is byte-for-byte unchanged.
+
+I have a working patch (1 new file + a guard in the capture callback, no new dependencies) with unit tests covering the classifier, including a table of every capture measured in that run. Happy to open a PR if you're open to it — wanted to check receptiveness first given #4747.
