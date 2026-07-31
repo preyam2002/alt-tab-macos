@@ -9,7 +9,8 @@ Fix broken window-preview **thumbnails for windows staged in the Stage Manager s
 - Repo (worktree): `/Users/preyam/repo/alt-tab-macos-stage-manager-fix`
 - Remotes: `origin` = lwouis/alt-tab-macos, `fork` = preyam2002/alt-tab-macos
 - `fix/stage-manager-thumbnails` — the **10.12.0-based** original fix (6 files). Pushed to fork (ahead 2). Messy "chore: save workspace state" commits + `tasklist.md` + `ai/install-stage.sh`. The full 6-file patch is saved at `notes/stage-manager/sm_fix_10.12.0.patch`.
-- `fix/sm-thumbnails-11.3.0` — **CURRENT**, based on upstream 11.3.0. The re-port (1 file). **This is where active work is.**
+- `fix/sm-thumbnails-11.3.0` — the 11.3.0 working branch: WIP checkpoint + Approach C + all notes/handoff docs. Pushed to fork.
+- `fix/stage-manager-staged-thumbnails` — **THE PR BRANCH (CURRENT)**: single clean commit `3450d29a` on upstream **11.4.3** master, fix files only (`WindowCapturePolicy.swift` + `Specs.md` + `Tests.swift`, guard in `WindowCaptureEvents.swift`, pbxproj registration), house style (enum namespace like `SchedulingPolicy`, Specs.md mirroring tests 1:1). Builds clean, **602/602 unit tests pass** on 11.4.3. Pushed to fork. Note: on 11.4.3 the SCK path runs ONLY on macOS 26+ (commit `5982a277`), which is exactly where the Stage Manager bug lives — and upstream already ships an SM capture workaround on the private-API path (`CGSWindowCaptureOptions.fullSize`, SkyLight.framework.swift:18), a good precedent to cite in the PR.
 - A git stash `sm-preserve-last-good-wip` held the 10.12.0 preserve-last-good edit (now committed onto the 10.12.0 branch; superseded by the 11.x port).
 
 ## Upstream moved 10.12.0 → 11.3.0 (+36 commits). Key facts:
