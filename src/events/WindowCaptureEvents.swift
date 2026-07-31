@@ -36,25 +36,27 @@ class WindowCaptureScreenshots {
         let prioritized = prioritizedIds ?? []
         BackgroundWork.screenshotsQueue.addOperation {
             guard source != .refreshOnlyThumbnailsAfterShowUi || SwitcherSession.isActive else { return }
+            // read once per batch so toggling Stage Manager doesn't require restarting AltTab
+            let stageManagerEnabled = isStageManagerEnabled()
             let (cachedWindows, notCachedWindows) = sortCachedAndNotCached(Array(requests.keys))
             Logger.debug { "cached:\(cachedWindows.map { $0.windowID }) notCached:\(notCachedWindows)" }
             // iterate prioritized windows first so they enqueue (and grab queue slots) ahead of the rest
             let sortedCached = cachedWindows.sorted { prioritized.contains($0.windowID) && !prioritized.contains($1.windowID) }
             let sortedNotCached = notCachedWindows.sorted { prioritized.contains($0) && !prioritized.contains($1) }
-            handleCachedWindows(sortedCached, requests, source, prioritized)
-            handleNotCachedWindows(sortedNotCached, requests, source, prioritized)
+            handleCachedWindows(sortedCached, requests, source, prioritized, stageManagerEnabled)
+            handleNotCachedWindows(sortedNotCached, requests, source, prioritized, stageManagerEnabled)
         }
     }
 
-    private static func handleCachedWindows(_ cachedWindows: [SCWindow], _ requests: [CGWindowID: CaptureRequest], _ source: RefreshCausedBy, _ prioritized: Set<CGWindowID>) {
+    private static func handleCachedWindows(_ cachedWindows: [SCWindow], _ requests: [CGWindowID: CaptureRequest], _ source: RefreshCausedBy, _ prioritized: Set<CGWindowID>, _ stageManagerEnabled: Bool) {
         guard !cachedWindows.isEmpty else { return }
         for cachedWindow in cachedWindows {
             guard let request = requests[cachedWindow.windowID] else { continue }
-            oneTimeCapture(cachedWindow, request, source, prioritized.contains(cachedWindow.windowID))
+            oneTimeCapture(cachedWindow, request, source, prioritized.contains(cachedWindow.windowID), stageManagerEnabled)
         }
     }
 
-    private static func handleNotCachedWindows(_ notCachedWindows: [CGWindowID], _ requests: [CGWindowID: CaptureRequest], _ source: RefreshCausedBy, _ prioritized: Set<CGWindowID>) {
+    private static func handleNotCachedWindows(_ notCachedWindows: [CGWindowID], _ requests: [CGWindowID: CaptureRequest], _ source: RefreshCausedBy, _ prioritized: Set<CGWindowID>, _ stageManagerEnabled: Bool) {
         guard !notCachedWindows.isEmpty else { return }
         SCShareableContent.getExcludingDesktopWindows(true, onScreenWindowsOnly: false) { shareableContent, error in
             guard let shareableContent, error == nil else { Logger.error { "\(shareableContent == nil) \(error)" }; return }
@@ -66,7 +68,7 @@ class WindowCaptureScreenshots {
                 for notCachedWindow in notCachedWindows {
                     guard let request = requests[notCachedWindow] else { continue }
                     if let cachedWindow = (shareableContent.windows.first { $0.windowID == notCachedWindow }) {
-                        oneTimeCapture(cachedWindow, request, source, prioritized.contains(notCachedWindow))
+                        oneTimeCapture(cachedWindow, request, source, prioritized.contains(notCachedWindow), stageManagerEnabled)
                     } else {
                         Logger.debug { "wid:\(notCachedWindow) was not found in SCShareableContent windows" }
                     }
@@ -90,7 +92,7 @@ class WindowCaptureScreenshots {
         }
     }
 
-    private static func oneTimeCapture(_ scWindow: SCWindow, _ request: CaptureRequest, _ source: RefreshCausedBy, _ isPrioritized: Bool = false) {
+    private static func oneTimeCapture(_ scWindow: SCWindow, _ request: CaptureRequest, _ source: RefreshCausedBy, _ isPrioritized: Bool = false, _ stageManagerEnabled: Bool = false) {
         let size = request.size
         let scaleFactor = request.scaleFactor
         // [weak window] avoids keeping a closed Window alive while the capture is queued or in-flight with the OS
@@ -105,12 +107,28 @@ class WindowCaptureScreenshots {
                 guard let sampleBuffer, error == nil else { Logger.error { "\(window.debugId) \(sampleBuffer == nil) \(error)" }; return }
                 guard source != .refreshOnlyThumbnailsAfterShowUi || SwitcherSession.isActive else { return }
                 guard let pixelBuffer = sampleBuffer.pixelBuffer() ?? sampleBuffer.imageBuffer else { Logger.error { "\(window.debugId) no pixelBuffer" }; return }
+                // macOS 26 Stage Manager: captures of side-strip windows come back blank or shelf-sized;
+                // drop them so the previous good thumbnail (or the icon, if never captured) stays shown
+                guard WindowCapturePolicy.shouldUseCapture(stageManagerEnabled, pixelBuffer) else {
+                    Logger.debug { "\(window.debugId) dropped blank staged capture" }
+                    return
+                }
                 DispatchQueue.main.async {
                     guard source != .refreshOnlyThumbnailsAfterShowUi || SwitcherSession.isActive else { return }
                     window.refreshThumbnail(.pixelBuffer(pixelBuffer))
                 }
             }
         }
+    }
+
+    // Stage Manager has no public API; its on/off state is in the WindowManager defaults domain
+    private static func isStageManagerEnabled() -> Bool {
+        let domain = "com.apple.WindowManager" as CFString
+        CFPreferencesAppSynchronize(domain)
+        guard let value = CFPreferencesCopyAppValue("GloballyEnabled" as CFString, domain) else { return false }
+        if let enabled = value as? Bool { return enabled }
+        if let enabled = value as? Int { return enabled != 0 }
+        return false
     }
 }
 
